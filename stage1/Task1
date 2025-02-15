@@ -1,15 +1,13 @@
-import math
-
 def time_to_80_percent_growth(K, N0, r):
     """
-    Calculate the time required to reach 80% of the carrying capacity in a logistic growth model.
-    
+    Calculate the time required to reach 80% of the carrying capacity using the logistic growth curve equation 
     Parameters:
-    K  : Carrying capacity
-    N0 : Initial population size
-    r  : Growth rate
+    K : Carrying capacity
+    N0: Initial population size
+    r : Growth rate
     """
-    t_80 = (math.log((K - N0) / N0) + math.log(4)) / r   #Logistic Growth Curve Equation for N(t)= 80% of K
+    Nt = 0.8 * K
+    t_80 = (1 / r) * ((K - N0) / N0) * ((1 / ((K / Nt) - 1)))
 
     return t_80
 
@@ -20,3 +18,5 @@ r = 0.1    # Growth rate
 
 t_80 = time_to_80_percent_growth(K, N0, r)
 print(f"Time to reach 80% of carrying capacity: {t_80:.2f} time units")
+
+
