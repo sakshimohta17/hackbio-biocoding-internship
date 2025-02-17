@@ -1,0 +1,134 @@
+#HackBio week two submission for Team Leucine 
+#Github link to the code: https://github.com/Gooddy07/hackbbio-biocoding-internship/blob/main/stage-one/stage-one%20assignment
+
+#The first task is to write a function for translating DNA to protein
+
+def dna (seq):
+    
+    #seq = input("Enter the DNA").upper()                       <- This is to allow the user to type in a codon
+    
+    if seq == "UUU" or seq == "UUC":
+        print ("The protein is Phenylalanine")
+    elif seq == "UUA" or seq == "UUG" or seq == "CUU" or seq == "CUC" or seq == "CUA" or seq == "CUG":
+        print ("The protein is Leucine")
+    elif seq == "AUU" or seq == "AUC" or seq == "AUA":
+        print ("The protein is Isoleucine")
+    elif seq == "AUG":
+        print ("The protein is Methionine: The start codon")
+    elif seq == "GUU" or seq == "GUC" or seq == "GUA" or seq == "GUG":
+        print ("The protein is Valine")
+    elif seq == "UCU" or seq == "UCC" or seq == "UCA" or seq == "UCG" or seq == "AGU" or seq == "AGC":
+        print ("The protein is Serine")
+    elif seq == "CCU" or seq == "CCC" or seq == "CCA" or seq == "CCG":
+        print ("The protein is Proline")
+    elif seq == "ACU" or seq == "ACC" or seq == "ACA" or seq == "ACG":
+        print ("The protein is Threonine")
+    elif seq == "GCU" or seq == "GCC" or seq == "GCA" or seq == "GCG":
+        print ("The protein is Alanine")
+    elif seq == "CGU" or seq == "CGC" or seq == "CGA" or seq == "CGG" or seq == "AGA" or seq == "AGG":
+        print ("The protein is Arginine")
+    elif seq == "GGU" or seq == "GGC" or seq == "GGA" or seq == "GGG":
+        print ("The protein is Glycine")
+    elif seq == "UAU" or seq == "UAC":
+        print ("The protein is Tyrosine")
+    elif seq == "UAA" or seq == "UAG" or seq == "UGA":
+        print ("The protein is STOP")
+    elif seq == "CAU" or seq == "CAC":
+        print ("The protein is Histidine")
+    elif seq == "CAA" or seq == "CAG":
+        print ("The protein is Glutamine")
+    elif seq == "AAU" or seq == "AAC":
+        print ("The protein is Asparagine")
+    elif seq == "AAA" or seq == "AAG":
+        print ("The protein is Lysine")
+    elif seq == "GAU" or seq == "GAC":
+        print ("The protein is Aspartic Acid")
+    elif seq == "GAA" or seq == "GAG":
+        print ("The protein is Glutamic Acid")
+    elif seq == "UGU" or seq == "UGC":
+        print ("The protein is Cysteine")
+    elif seq == "UGG":
+        print ("The protein is Tryptophan")
+    else:
+        print ("Please input a 3 letter codon with the combination of letters A, U, G and C")
+    return seq
+
+#seqA = input("Enter the DNA").upper()      <- The user can input the code here
+dna ("UGC")                                 # <- Or the programmer can include the specific codon here
+print (dna)
+
+
+#The second task is to write a function that stimulates and generates a logistic population growth curve
+#Logistic Growth Function
+def simulate_logistic_growth(time_points=100, K=1000, P0=10, r=0.2, lag_min=5, lag_max=20, exp_min=30, exp_max=60):
+    # Manual randomization
+    lag_phase_duration = (lag_min + lag_max) // 2  # Approximate midpoint
+    exp_phase_duration = (exp_min + exp_max) // 2  # Approximate midpoint
+
+    # Initialize time and population lists
+    time = [t for t in range(time_points)]
+    population = [0] * time_points
+    
+    # Growth Simulation
+    for t in range(time_points):
+        if t < lag_phase_duration:
+            population[t] = P0  # Lag phase: No growth
+        else:
+            effective_time = t - lag_phase_duration
+            # Logistic Growth Equation
+            population[t] = K / (1 + ((K - P0) / P0) * (2.71828 ** (-r * effective_time)))
+
+    # Return a list of (time, population) tuples
+    return [(time[i], population[i]) for i in range(time_points)]
+
+# Generate 100 different growth curves (No imports used)
+growth_data_list = [simulate_logistic_growth() for _ in range(100)]
+
+# Print first 10 time points from the first simulation
+for time, pop in growth_data_list[0][:10]:
+    print("Time:", time, "Population:", round(pop, 2))
+
+
+#The third task is to write a function determing the time to reach 80% of the maximum growth
+
+def time_to_80_percent_growth(K, N0, r):
+    """
+    Calculate the time required to reach 80% of the carrying capacity using the logistic growth curve equation 
+    Parameters:
+    K : Carrying capacity
+    N0: Initial population size
+    r : Growth rate
+    """
+    Nt = 0.8 * K
+    t_80 = (1 / r) * ((K - N0) / N0) * ((1 / ((K / Nt) - 1)))
+
+    return t_80
+
+# Example usage
+K = 1000   # Carrying capacity
+N0 = 50    # Initial population
+r = 0.1    # Growth rate
+
+t_80 = time_to_80_percent_growth(K, N0, r)
+print(f"Time to reach 80% of carrying capacity: {t_80:.2f} time units")
+
+#The fourth task is to write a function for calculating the hamming distance between our slack usernames and twitter handles
+
+def hamming_distance(str1, str2):
+    """Calculate the Hamming distance between two strings."""
+    length = min(len(str1), len(str2))  # Compare up to the length of the shorter string
+    return sum(c1 != c2 for c1, c2 in zip(str1[:length], str2[:length]))
+
+# Member details
+members = [
+    ("Umunakwe", "@UGoodnessGozie"),
+    ("Raji", "@Abdulrah001"),
+    ("Sakshi", "@Sakshi"),
+    ("Ange", "@Ange"),
+    ("Maero", "@Maero")
+]
+
+# Calculate and print Hamming distances
+for i, (slack, twitter) in enumerate(members, start=1):
+    distance = hamming_distance(slack, twitter)
+    print(f"Member {i}: Hamming Distance between '{slack}' and '{twitter}' is {distance}")
