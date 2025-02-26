@@ -1,0 +1,99 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import ttest_ind
+
+# Function to detect delimiter
+def detect_delimiter(file_path):
+    with open(file_path, "r") as file:
+        line = file.readline()
+        if "," in line:
+            return ","
+        elif ";" in line:
+            return ";"
+        elif "\t" in line:
+            return "\t"
+        else:
+            return ","  # Default to comma
+
+# Load dataset
+file_path = "your_dataset.csv"  # Replace with actual file path
+delimiter = detect_delimiter(file_path)
+
+try:
+    df = pd.read_csv(file_path, sep=delimiter, encoding="utf-8")
+except Exception as e:
+    print("Error reading file:", e)
+    exit()
+
+# Check dataset structure
+print(df.head())
+
+# Function to determine time to carrying capacity (OD600 max)
+def time_to_carrying_capacity(df, strain_column, time_column, od_column):
+    carrying_capacity_times = {}
+    
+    for strain in df[strain_column].unique():
+        strain_data = df[df[strain_column] == strain]
+        carrying_capacity_time = strain_data[time_column][strain_data[od_column] == strain_data[od_column].max()].values[0]
+        carrying_capacity_times[strain] = carrying_capacity_time
+    
+    return carrying_capacity_times
+
+# Define column names based on dataset
+strain_column = "Strain"  # Adjust according to your dataset
+time_column = "Time"
+od_column = "OD600"
+
+# Get time to carrying capacity
+carrying_capacity_times = time_to_carrying_capacity(df, strain_column, time_column, od_column)
+
+# Convert to DataFrame
+carrying_capacity_df = pd.DataFrame(list(carrying_capacity_times.items()), columns=["Strain", "CarryingCapacityTime"])
+carrying_capacity_df["Type"] = carrying_capacity_df["Strain"].apply(lambda x: "Knock-out" if "-" in x else "Knock-in")
+
+# Plot Growth Curves
+plt.figure(figsize=(10, 6))
+for strain in df[strain_column].unique():
+    strain_data = df[df[strain_column] == strain]
+    plt.plot(strain_data[time_column], strain_data[od_column], label=strain)
+
+plt.xlabel("Time (hours)")
+plt.ylabel("OD600")
+plt.title("Growth Curves of Different Strains")
+plt.legend()
+plt.show()
+
+# Scatter Plot
+plt.figure(figsize=(8, 5))
+sns.scatterplot(x="Type", y="CarryingCapacityTime", data=carrying_capacity_df)
+plt.title("Scatter Plot: Time to Carrying Capacity")
+plt.show()
+
+# Box Plot
+plt.figure(figsize=(8, 5))
+sns.boxplot(x="Type", y="CarryingCapacityTime", data=carrying_capacity_df)
+plt.title("Box Plot: Time to Carrying Capacity")
+plt.show()
+
+# Statistical Test (t-test)
+knock_out_times = carrying_capacity_df[carrying_capacity_df["Type"] == "Knock-out"]["CarryingCapacityTime"]
+knock_in_times = carrying_capacity_df[carrying_capacity_df["Type"] == "Knock-in"]["CarryingCapacityTime"]
+
+t_stat, p_value = ttest_ind(knock_out_times, knock_in_times, equal_var=False)
+print(f"T-test results: t-stat = {t_stat:.4f}, p-value = {p_value:.4f}")
+
+# Conclusion
+if p_value < 0.05:
+    print("Significant difference found between Knock-out and Knock-in strains' carrying capacity times.")
+else:
+    print("No significant difference found.")
+
+# Observations (in comments)
+"""
+- The growth curves help visualize how different strains grow over time.
+- The scatter plot shows how knock-out and knock-in strains compare in reaching carrying capacity.
+- The box plot allows us to observe variability and median values for carrying capacity times.
+- The statistical test helps determine if there's a significant difference in growth patterns.
+"""
