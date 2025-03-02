@@ -4,73 +4,76 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 from scipy.stats import ttest_ind
 
 # Load dataset
 dataset_url = "https://raw.githubusercontent.com/HackBio-Internship/2025_project_collection/refs/heads/main/Python/Dataset/mcgc.tsv"
-df = pd.read_csv(dataset_url, sep="\t")
+df = pd.read_csv(dataset_url, sep='\t')
 
-# Load metadata
-metadata_url = "https://raw.githubusercontent.com/HackBio-Internship/2025_project_collection/refs/heads/main/Python/Dataset/mcgc_METADATA.txt"
-metadata = pd.read_csv(metadata_url, sep="\t", header=None)
-print("Metadata Information:")
-print(metadata.head())
+# Function to determine time to reach carrying capacity
+def carrying_capacity_time(df, strain):
+    strain_data = df[df['Strain'] == strain]
+    carrying_capacity = strain_data['OD600'].max()
+    time_to_capacity = strain_data[strain_data['OD600'] >= 0.95 * carrying_capacity]['Time'].min()
+    return time_to_capacity
 
-# Preview the dataset
-print(df.head())
-
-# Define a function to determine the time to reach carrying capacity
-def get_carrying_capacity_time(data, strain):
-    subset = data[data['Strain'] == strain]
-    carrying_capacity = subset['OD600'].max() * 0.95  # 95% of max OD600 as threshold
-    return subset[subset['OD600'] >= carrying_capacity]['Time'].min()
-
-# Extract unique strains
+# Get unique strains
 strains = df['Strain'].unique()
-carrying_capacities = []
+time_to_capacity = []
+
+plt.figure(figsize=(12, 6))
 
 # Plot growth curves
-plt.figure(figsize=(12, 6))
+grouped = df.groupby(['Strain', 'Type'])
 for strain in strains:
-    sub_df = df[df['Strain'] == strain]
-    for variant in ['-', '+']:
-        variant_data = sub_df[sub_df['Variant'] == variant]
-        plt.plot(variant_data['Time'], variant_data['OD600'], label=f"{strain} {variant}")
-        
-        # Calculate carrying capacity time
-        carrying_time = get_carrying_capacity_time(variant_data, strain)
-        carrying_capacities.append({'Strain': strain, 'Variant': variant, 'CarryingTime': carrying_time})
+    plt.figure(figsize=(8, 5))
+    for label, group in grouped:
+        if label[0] == strain:
+            plt.plot(group['Time'], group['OD600'], label=f"{label[1]} strain")
+    plt.xlabel('Time (hours)')
+    plt.ylabel('OD600')
+    plt.title(f'Growth Curve for {strain}')
+    plt.legend()
+    plt.show()
 
-plt.xlabel('Time')
-plt.ylabel('OD600')
-plt.title('Growth Curves of Different Strains')
+    # Store time to carrying capacity
+    time_to_capacity.append([strain, carrying_capacity_time(df, strain), df[df['Strain'] == strain]['Type'].iloc[0]])
+
+# Convert time-to-capacity data into a DataFrame
+time_df = pd.DataFrame(time_to_capacity, columns=['Strain', 'Time_to_Capacity', 'Type'])
+
+# Scatter plot of carrying capacity times
+plt.figure(figsize=(8, 5))
+sns.scatterplot(data=time_df, x='Type', y='Time_to_Capacity', hue='Strain')
+plt.xlabel("Strain Type")
+plt.ylabel("Time to Carrying Capacity (hours)")
+plt.title("Scatter Plot of Carrying Capacity Time")
 plt.legend()
 plt.show()
 
-# Convert carrying capacity data to DataFrame
-carrying_df = pd.DataFrame(carrying_capacities)
-
-# Scatter plot of carrying capacity time
+# Box plot of carrying capacity times
 plt.figure(figsize=(8, 5))
-sns.scatterplot(data=carrying_df, x='Variant', y='CarryingTime', hue='Strain')
-plt.title('Scatter Plot of Carrying Capacity Time')
+sns.boxplot(data=time_df, x='Type', y='Time_to_Capacity')
+plt.xlabel("Strain Type")
+plt.ylabel("Time to Carrying Capacity (hours)")
+plt.title("Box Plot of Carrying Capacity Time")
 plt.show()
 
-# Box plot of carrying capacity time
-plt.figure(figsize=(8, 5))
-sns.boxplot(data=carrying_df, x='Variant', y='CarryingTime')
-plt.title('Box Plot of Carrying Capacity Time')
-plt.show()
+# Statistical analysis
+knockout_times = time_df[time_df['Type'] == '-']['Time_to_Capacity']
+knockin_times = time_df[time_df['Type'] == '+']['Time_to_Capacity']
 
-# Statistical test
-knock_out = carrying_df[carrying_df['Variant'] == '-']['CarryingTime']
-knock_in = carrying_df[carrying_df['Variant'] == '+']['CarryingTime']
-t_stat, p_value = ttest_ind(knock_out, knock_in, nan_policy='omit')
-print(f"T-test results: t-statistic = {t_stat:.3f}, p-value = {p_value:.3f}")
+stat, p_value = ttest_ind(knockout_times, knockin_times, equal_var=False)
+print(f"T-test p-value: {p_value}")
 
-# Interpretation as comments:
-# - If p-value < 0.05, there is a statistically significant difference between knock-out and knock-in strains.
-# - If p-value > 0.05, we fail to reject the null hypothesis, meaning no significant difference.
-# - The growth curves help visualize differences in growth rates between variants.
-# - The scatter and box plots provide a comparative view of carrying capacity times across strains.
-# - Metadata file helps in understanding dataset structure and variables used.
+# Interpretation of statistical results
+if p_value < 0.05:
+    print("There is a significant difference in the time to carrying capacity between knock-out and knock-in strains.")
+else:
+    print("No significant difference found between knock-out and knock-in strains.")
+
+# Observations:
+# - If knock-out strains take significantly longer to reach carrying capacity, it may suggest impaired growth.
+# - If knock-in strains reach carrying capacity faster, it may indicate a growth advantage.
+# - The boxplot and scatter plot provide a visual representation of these differences.
