@@ -6,39 +6,42 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from scipy.stats import ttest_ind
+import urllib.request
+import io
 
 # Load dataset
-dataset_url = "https://raw.githubusercontent.com/HackBio-Internship/2025_project_collection/refs/heads/main/Python/Dataset/mcgc.tsv"
-df = pd.read_csv(dataset_url, sep='\t')
+url = "https://raw.githubusercontent.com/HackBio-Internship/2025_project_collection/refs/heads/main/Python/Dataset/mcgc.tsv"
+response = urllib.request.urlopen(url)
+df = pd.read_csv(io.StringIO(response.read().decode('utf-8')), sep='\t')
 
 # Function to determine time to reach carrying capacity
-def carrying_capacity_time(df, strain):
-    strain_data = df[df['Strain'] == strain]
+def carrying_capacity_time(df, strain, strain_type):
+    strain_data = df[(df['Strain'] == strain) & (df['Type'] == strain_type)]
     carrying_capacity = strain_data['OD600'].max()
     time_to_capacity = strain_data[strain_data['OD600'] >= 0.95 * carrying_capacity]['Time'].min()
     return time_to_capacity
 
 # Get unique strains
-strains = df['Strain'].unique()
 time_to_capacity = []
-
-plt.figure(figsize=(12, 6))
+strains = df['Strain'].unique()
 
 # Plot growth curves
-grouped = df.groupby(['Strain', 'Type'])
 for strain in strains:
     plt.figure(figsize=(8, 5))
-    for label, group in grouped:
-        if label[0] == strain:
-            plt.plot(group['Time'], group['OD600'], label=f"{label[1]} strain")
+    for strain_type in ['-', '+']:
+        subset = df[(df['Strain'] == strain) & (df['Type'] == strain_type)]
+        if not subset.empty:
+            plt.plot(subset['Time'], subset['OD600'], label=f"{strain_type} strain")
     plt.xlabel('Time (hours)')
     plt.ylabel('OD600')
     plt.title(f'Growth Curve for {strain}')
     plt.legend()
     plt.show()
-
+    
     # Store time to carrying capacity
-    time_to_capacity.append([strain, carrying_capacity_time(df, strain), df[df['Strain'] == strain]['Type'].iloc[0]])
+    for strain_type in ['-', '+']:
+        if not df[(df['Strain'] == strain) & (df['Type'] == strain_type)].empty:
+            time_to_capacity.append([strain, carrying_capacity_time(df, strain, strain_type), strain_type])
 
 # Convert time-to-capacity data into a DataFrame
 time_df = pd.DataFrame(time_to_capacity, columns=['Strain', 'Time_to_Capacity', 'Type'])
@@ -64,7 +67,7 @@ plt.show()
 knockout_times = time_df[time_df['Type'] == '-']['Time_to_Capacity']
 knockin_times = time_df[time_df['Type'] == '+']['Time_to_Capacity']
 
-stat, p_value = ttest_ind(knockout_times, knockin_times, equal_var=False)
+stat, p_value = ttest_ind(knockout_times, knockin_times, equal_var=False, nan_policy='omit')
 print(f"T-test p-value: {p_value}")
 
 # Interpretation of statistical results
